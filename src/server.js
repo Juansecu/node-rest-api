@@ -98,6 +98,11 @@ const handlers = {};
 // Define a request router
 const router = {};
 
+// Ping handler
+handlers.ping = (data, callback) => {
+    callback(200, { name: 'Pong' });
+};
+
 // Sample handler
 handlers.sample = (data, callback) => {
     // Callback a http status code, and a payload object
@@ -110,7 +115,11 @@ handlers.notFound = (data, callback) => {
     callback(404, { name: 'Not found handler' });
 };
 
-router.sample = handlers.sample;
+// Assign the handlers to the router
+for (const handlerName in handlers) {
+    if (handlerName === 'notFound') continue;
+    router[handlerName] = handlers[handlerName];
+}
 
 httpServer.listen(config.httpPort, () =>
     console.log(
