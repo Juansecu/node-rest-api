@@ -5,18 +5,21 @@ let currentEnvironment = 'development';
 const environments = {};
 
 environments.development = {
-    port: 3000,
-    environment: 'development'
+    environment: 'development',
+    httpPort: 3000,
+    httpsPort: 3001
 };
 
 environments.production = {
-    port: 4000,
-    environment: 'production'
+    environment: 'production',
+    httpPort: 4000,
+    httpsPort: 443
 };
 
 environments.staging = {
-    port: 5000,
-    environment: 'staging'
+    environment: 'staging',
+    httpPort: 5000,
+    httpsPort: 5001
 };
 
 currentEnvironment = process.env.NODE_ENV || 'development';
