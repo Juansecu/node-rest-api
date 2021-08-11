@@ -6,6 +6,8 @@ const StringDecoder = require('string_decoder').StringDecoder;
 
 const config = require('./config');
 
+const handlers = require('./handlers');
+
 // All the server logic for both the http and https requests
 const unifiedServer = (req, res) => {
     let buffer = '';
@@ -92,28 +94,8 @@ const httpsServerOptions = {
 };
 const httpsServer = https.createServer(httpsServerOptions, unifiedServer);
 
-// Define the handlers
-const handlers = {};
-
 // Define a request router
 const router = {};
-
-// Ping handler
-handlers.ping = (data, callback) => {
-    callback(200, { name: 'Pong' });
-};
-
-// Sample handler
-handlers.sample = (data, callback) => {
-    // Callback a http status code, and a payload object
-    callback(406, { name: 'Sample handler' });
-};
-
-// Not found handler
-handlers.notFound = (data, callback) => {
-    // Callback a http status code, and a payload object
-    callback(404, { name: 'Not found handler' });
-};
 
 // Assign the handlers to the router
 for (const handlerName in handlers) {
