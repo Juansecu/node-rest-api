@@ -15,7 +15,7 @@ dataLib.baseDir = path.join(__dirname, '../../.data');
 // Delete a file
 dataLib.delete = function (fileName, dir, callback) {
     // Unlink the file
-    fs.unlink(`${dataLib.baseDir}/${dir}/${fileName}`, error => {
+    fs.unlink(`${dataLib.baseDir}/${dir}/${fileName}.json`, error => {
         if (!error) callback(null);
         else callback(error);
     });
