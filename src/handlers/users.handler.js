@@ -9,21 +9,9 @@ const _users = {};
 const usersHandler = function (data, callback) {
     const acceptableMethods = ['GET', 'POST', 'PUT', 'DELETE'];
 
-    if (acceptableMethods.indexOf(data.method.toUpperCase()) > -1) {
-        /* if (data.method === 'PUT') {
-            const user = data.body;
-            const users = require('./../../../data/users');
-            const index = users.findIndex(u => u.id === user.id);
-            users[index] = user;
-            callback(null, users);
-        } else if (data.method === 'DELETE') {
-            const users = require('./../../../data/users');
-            const index = users.findIndex(u => u.id === data.params.id);
-            users.splice(index, 1);
-            callback(null, users);
-        }*/
+    if (acceptableMethods.indexOf(data.method.toUpperCase()) > -1)
         _users[data.method](data, callback);
-    } else callback(405, { message: 'Method not allowed' });
+    else callback(405, { message: 'Method not allowed' });
 };
 
 /**
