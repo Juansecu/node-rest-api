@@ -14,7 +14,38 @@ const tokensHandler = (data, callback) => {
     else callback(405, { message: 'Method not allowed' });
 };
 
-_tokens.delete = (data, callback) => {};
+/**
+ * @param {{payload : {
+ *          tokenId: string
+ * }}} data
+ * @param {function} callback
+ */
+_tokens.delete = (data, callback) => {
+    // Check that the token ID is valid
+    const tokenId =
+        typeof data.payload.tokenId === 'string' &&
+        data.payload.tokenId.match(/^[a-zA-Z0-9]{20}$/)
+            ? data.payload.tokenId.trim()
+            : '';
+
+    if (tokenId) {
+        // Lookup the token
+        _dataLib.read(tokenId, 'tokens', (error, tokenData) => {
+            if (!error) {
+                // Delete the token
+                _dataLib.delete(tokenId, 'tokens', error => {
+                    if (!error) callback(null, { message: 'Token deleted' });
+                    else {
+                        console.error(error);
+                        callback(500, {
+                            message: 'Error deleting token'
+                        });
+                    }
+                });
+            } else callback(404, { message: 'Token not found' });
+        });
+    } else callback(400, { message: 'Token ID not provided' });
+};
 
 /**
  * @param {{payload : {
