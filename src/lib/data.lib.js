@@ -5,6 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const helpers = require('../helpers');
+
 const dataLib = {};
 
 // Base directory for data files
@@ -24,7 +26,13 @@ dataLib.read = function (fileName, dir, callback) {
     fs.readFile(
         `${dataLib.baseDir}/${dir}/${fileName}.json`,
         'utf8',
-        (error, data) => callback(error, data)
+        (error, data) => {
+            if (!error) {
+                // Parse the data
+                const dataObject = helpers.parseJsonToObject(data);
+                callback(null, dataObject);
+            } else callback(error, data);
+        }
     );
 };
 
