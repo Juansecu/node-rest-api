@@ -247,7 +247,7 @@ _users.put = function (data, callback) {
                             userData.password = helpers.hash(password);
 
                         // Store the new user data
-                        _dataLib.write(
+                        _dataLib.update(
                             userData,
                             phoneNumber.replace('+', ''),
                             'users',
