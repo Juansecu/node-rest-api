@@ -41,7 +41,7 @@ _tokens.get = (data, callback) => {
                 } else callback(401, { message: 'Token expired' });
             } else callback(404, { message: 'Token not found' });
         });
-    } else callback(500, { message: 'Token ID not provided' });
+    } else callback(400, { message: 'Token ID not provided' });
 };
 
 /**
@@ -100,6 +100,49 @@ _tokens.post = (data, callback) => {
     } else callback(400, { message: 'Missing required fields' });
 };
 
-_tokens.put = (data, callback) => {};
+/**
+ * @param {{payload : {
+ *          tokenId: string,
+ *          extend: boolean
+ * }}} data
+ * @param {function} callback
+ */
+_tokens.put = (data, callback) => {
+    // Check that the token ID is valid
+    const tokenId =
+        typeof data.payload.tokenId === 'string' &&
+        data.payload.tokenId.match(/^[a-zA-Z0-9]{20}$/)
+            ? data.payload.tokenId.trim()
+            : '';
+    const extend =
+        typeof data.payload.extend === 'boolean' && data.payload.extend
+            ? data.payload.extend
+            : false;
+
+    if (tokenId && extend) {
+        // Lookup the token
+        _dataLib.read(tokenId, 'tokens', (error, tokenData) => {
+            if (!error) {
+                // Check that the token is not expired
+                if (tokenData.tokenExpiration > Date.now()) {
+                    // Extend the token expiration by the extend value
+                    tokenData.tokenExpiration = Date.now() + 3600000;
+
+                    // Save the token
+                    _dataLib.update(tokenData, tokenId, 'tokens', error => {
+                        if (!error)
+                            callback(null, {
+                                message: `${tokenId}'s token expiration was extended`
+                            });
+                        else
+                            callback(500, {
+                                message: 'Error extending token'
+                            });
+                    });
+                } else callback(401, { message: 'Token expired' });
+            } else callback(404, { message: 'Token not found' });
+        });
+    } else callback(400, { message: 'Missing required fields' });
+};
 
 module.exports = tokensHandler;
