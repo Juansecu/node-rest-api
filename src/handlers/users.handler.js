@@ -1,5 +1,7 @@
 const _dataLib = require('../lib/data.lib');
 
+const { _tokens } = require('./tokens.handler');
+
 const helpers = require('../helpers');
 
 // Container for the users submethods
@@ -15,9 +17,12 @@ const usersHandler = function (data, callback) {
 };
 
 /**
- * @param {{payload: {
- *          phoneNumber: string,
- * }}} data
+ * @param {{
+ *     headers: object,
+ *     payload: {
+ *         phoneNumber: string,
+ *     }
+ * }} data
  * @param {function} callback
  */
 _users.delete = function (data, callback) {
@@ -29,35 +34,52 @@ _users.delete = function (data, callback) {
             : '';
 
     if (phoneNumber) {
-        // Lookup the user
-        _dataLib.read(
-            phoneNumber.replace('+', ''),
-            'users',
-            (error, userData) => {
-                if (!error) {
-                    // Remove the user
-                    _dataLib.delete(
-                        phoneNumber.replace('+', ''),
-                        'users',
-                        error => {
-                            if (!error) {
-                                callback(null, { message: 'User deleted' });
-                            } else
-                                callback(500, {
-                                    message: 'Error deleting user'
-                                });
-                        }
-                    );
-                } else callback(404, { message: 'User not found' });
-            }
-        );
+        // Get the token from the headers
+        const token =
+            typeof data.headers.authorization === 'string' &&
+            data.headers.authorization.match(/^[a-zA-Z0-9]{20}$/)
+                ? data.headers.authorization.trim()
+                : '';
+
+        // Check that the token and the phone number match
+        _tokens.verifyToken(token, phoneNumber, valid => {
+            if (valid) {
+                // Lookup the user
+                _dataLib.read(
+                    phoneNumber.replace('+', ''),
+                    'users',
+                    (error, userData) => {
+                        if (!error) {
+                            // Remove the user
+                            _dataLib.delete(
+                                phoneNumber.replace('+', ''),
+                                'users',
+                                error => {
+                                    if (!error) {
+                                        callback(null, {
+                                            message: 'User deleted'
+                                        });
+                                    } else
+                                        callback(500, {
+                                            message: 'Error deleting user'
+                                        });
+                                }
+                            );
+                        } else callback(404, { message: 'User not found' });
+                    }
+                );
+            } else callback(401, { message: 'Invalid token' });
+        });
     } else callback(400, { message: 'Missing required fields' });
 };
 
 /**
- * @param {{payload: {
- *          phoneNumber: string
- * }}} data
+ * @param {{
+ *     headers: object,
+ *     payload: {
+ *         phoneNumber: string
+ *     }
+ * }} data
  * @param {function} callback
  */
 _users.get = function (data, callback) {
@@ -69,18 +91,30 @@ _users.get = function (data, callback) {
             : '';
 
     if (phoneNumber) {
-        // Lookup the user
-        _dataLib.read(
-            phoneNumber.replace('+', ''),
-            'users',
-            (error, userData) => {
-                if (!error) {
-                    // Remove the hashed password from the user object before returning it to the requestor
-                    delete userData.password;
-                    callback(null, userData);
-                } else callback(404, { message: 'User not found' });
-            }
-        );
+        // Get the token from the headers
+        const token =
+            typeof data.headers.authorization === 'string' &&
+            data.headers.authorization.match(/^[a-zA-Z0-9]{20}$/)
+                ? data.headers.authorization.trim()
+                : '';
+
+        // Verify the token and the given phone number match
+        _tokens.verifyToken(token, phoneNumber, valid => {
+            if (valid) {
+                // Lookup the user
+                _dataLib.read(
+                    phoneNumber.replace('+', ''),
+                    'users',
+                    (error, userData) => {
+                        if (!error) {
+                            // Remove the hashed password from the user object before returning it to the requestor
+                            delete userData.password;
+                            callback(null, userData);
+                        } else callback(404, { message: 'User not found' });
+                    }
+                );
+            } else callback(401, { message: 'Invalid token' });
+        });
     } else callback(400, { message: 'Missing required fields' });
 };
 
@@ -177,13 +211,16 @@ _users.post = function (data, callback) {
 };
 
 /**
- * @param {{payload: {
- *          phoneNumber: string,
- *          email?: string,
- *          firstName?: string,
- *          lastName?: string,
- *          password?: string
- * }}} data
+ * @param {{
+ *     headers: object,
+ *     payload: {
+ *         phoneNumber: string,
+ *         email?: string,
+ *         firstName?: string,
+ *         lastName?: string,
+ *         password?: string
+ *     }
+ * }} data
  * @param {function} callback
  */
 _users.put = function (data, callback) {
@@ -221,37 +258,49 @@ _users.put = function (data, callback) {
     if (phoneNumber) {
         // Error if nothing is sent to update
         if (email || firstName || lastName || password) {
-            // Make sure the user exists
-            _dataLib.read(
-                phoneNumber.replace('+', ''),
-                'users',
-                (error, userData) => {
-                    if (!error) {
-                        // Update the user
-                        if (email) userData.email = email;
-                        if (firstName) userData.firstName = firstName;
-                        if (lastName) userData.lastName = lastName;
-                        if (password)
-                            userData.password = helpers.hash(password);
+            // Get the token from the headers
+            const token =
+                typeof data.headers.authorization === 'string' &&
+                data.headers.authorization.match(/^[a-zA-Z0-9]{20}$/)
+                    ? data.headers.authorization.trim()
+                    : '';
 
-                        // Store the new user data
-                        _dataLib.update(
-                            userData,
-                            phoneNumber.replace('+', ''),
-                            'users',
-                            error => {
-                                if (!error) callback(null, userData);
-                                else {
-                                    console.error(error);
-                                    callback(500, {
-                                        message: 'Could not update user'
-                                    });
-                                }
-                            }
-                        );
-                    } else callback(404, { message: 'User not found' });
-                }
-            );
+            // Check that the token and the phone number match
+            _tokens.verifyToken(token, phoneNumber, valid => {
+                if (valid) {
+                    // Make sure the user exists
+                    _dataLib.read(
+                        phoneNumber.replace('+', ''),
+                        'users',
+                        (error, userData) => {
+                            if (!error) {
+                                // Update the user
+                                if (email) userData.email = email;
+                                if (firstName) userData.firstName = firstName;
+                                if (lastName) userData.lastName = lastName;
+                                if (password)
+                                    userData.password = helpers.hash(password);
+
+                                // Store the new user data
+                                _dataLib.update(
+                                    userData,
+                                    phoneNumber.replace('+', ''),
+                                    'users',
+                                    error => {
+                                        if (!error) callback(null, userData);
+                                        else {
+                                            console.error(error);
+                                            callback(500, {
+                                                message: 'Could not update user'
+                                            });
+                                        }
+                                    }
+                                );
+                            } else callback(404, { message: 'User not found' });
+                        }
+                    );
+                } else callback(401, { message: 'Invalid token' });
+            });
         } else callback(400, { message: 'Nothing to update' });
     } else callback(400, { message: 'Missing required fields' });
 };
