@@ -54,11 +54,7 @@ dataLib.update = function (data, fileName, dir, callback) {
                         fs.writeFile(fileDescriptor, dataString, error => {
                             if (!error) {
                                 fs.close(fileDescriptor, error => {
-                                    if (!error)
-                                        fs.close(fileDescriptor, error => {
-                                            if (!error) callback(null);
-                                            else callback(error);
-                                        });
+                                    if (!error) callback(null);
                                     else callback(error);
                                 });
                             } else callback(error);
