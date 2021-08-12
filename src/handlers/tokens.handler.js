@@ -176,4 +176,19 @@ _tokens.put = (data, callback) => {
     } else callback(400, { message: 'Missing required fields' });
 };
 
+_tokens.verifyToken = (tokenId, phoneNumber, callback) => {
+    // Lookup the token
+    _dataLib.read(tokenId, 'tokens', (error, tokenData) => {
+        if (!error) {
+            // Check that the token is not expired and that the phone number matches
+            if (
+                tokenData.tokenExpiration > Date.now() &&
+                tokenData.phoneNumber === phoneNumber
+            )
+                callback(true);
+            else callback(false);
+        } else callback(false);
+    });
+};
+
 module.exports = tokensHandler;
