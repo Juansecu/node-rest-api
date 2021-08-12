@@ -16,13 +16,40 @@ const tokensHandler = (data, callback) => {
 
 _tokens.delete = (data, callback) => {};
 
-_tokens.get = (data, callback) => {};
+/**
+ * @param {{payload : {
+ *          tokenId: string,
+ * }}} data
+ * @param {function} callback
+ */
+_tokens.get = (data, callback) => {
+    // Check that the token ID is valid
+    const tokenId =
+        typeof data.payload.tokenId === 'string' &&
+        data.payload.tokenId.match(/^[a-zA-Z0-9]{20}$/)
+            ? data.payload.tokenId.trim()
+            : '';
+
+    if (tokenId) {
+        // Lookup the token
+        _dataLib.read(tokenId, 'tokens', (error, tokenData) => {
+            if (!error) {
+                // Check that the token is not expired
+                if (tokenData.tokenExpiration > Date.now()) {
+                    // Return the token
+                    callback(null, { token: tokenData });
+                } else callback(401, { message: 'Token expired' });
+            } else callback(404, { message: 'Token not found' });
+        });
+    } else callback(500, { message: 'Token ID not provided' });
+};
 
 /**
  * @param {{payload: {
  *          password: string,
  *          phoneNumber: string
  * }}} data
+ * @param {function} callback
  */
 _tokens.post = (data, callback) => {
     const password =
