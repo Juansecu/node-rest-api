@@ -191,4 +191,4 @@ _tokens.verifyToken = (tokenId, phoneNumber, callback) => {
     });
 };
 
-module.exports = tokensHandler;
+module.exports = { _tokens, tokensHandler };
