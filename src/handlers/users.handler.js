@@ -56,9 +56,78 @@ _users.delete = function (data, callback) {
                                 'users',
                                 error => {
                                     if (!error) {
-                                        callback(null, {
-                                            message: 'User deleted'
-                                        });
+                                        // Get the checks associated with the user
+                                        const userChecks =
+                                            typeof userData.checks ===
+                                                'object' &&
+                                            userData.checks instanceof Array
+                                                ? userData.checks
+                                                : [];
+                                        const checksToDelete =
+                                            userChecks.length;
+
+                                        if (checksToDelete) {
+                                            let deletionErrors = false;
+                                            let checksDeleted = 0;
+
+                                            // Loop through the checks associated with the user
+                                            userChecks.forEach(checkId => {
+                                                // Lookup the check
+                                                _dataLib.read(
+                                                    checkId,
+                                                    'checks',
+                                                    (error, checkData) => {
+                                                        if (!error) {
+                                                            // Remove the check
+                                                            _dataLib.delete(
+                                                                checkId,
+                                                                'checks',
+                                                                error => {
+                                                                    if (error) {
+                                                                        deletionErrors = true;
+                                                                        checksDeleted--;
+                                                                    } else
+                                                                        checksDeleted++;
+
+                                                                    // Check if all the checks have been deleted
+                                                                    if (
+                                                                        checksDeleted ===
+                                                                        checksToDelete
+                                                                    ) {
+                                                                        // Check if any errors were encountered
+                                                                        if (
+                                                                            deletionErrors
+                                                                        )
+                                                                            callback(
+                                                                                500,
+                                                                                {
+                                                                                    message:
+                                                                                        'Error deleting checks'
+                                                                                }
+                                                                            );
+                                                                        else
+                                                                            callback(
+                                                                                200,
+                                                                                {
+                                                                                    message:
+                                                                                        'User deleted'
+                                                                                }
+                                                                            );
+                                                                    }
+                                                                }
+                                                            );
+                                                        } else
+                                                            callback(404, {
+                                                                message:
+                                                                    'Check not found'
+                                                            });
+                                                    }
+                                                );
+                                            });
+                                        } else
+                                            callback(null, {
+                                                message: 'User deleted'
+                                            });
                                     } else
                                         callback(500, {
                                             message: 'Error deleting user'
