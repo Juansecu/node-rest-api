@@ -2,6 +2,8 @@ const config = require('../config');
 
 const _dataLib = require('../lib/data.lib');
 
+const { _tokens } = require('./tokens.handler');
+
 const helpers = require('../helpers');
 
 // Container for the checks submethods
@@ -18,13 +20,59 @@ const checksHandler = (data, callback) => {
 
 _checks.delete = (data, callback) => {};
 
-_checks.get = (data, callback) => {};
+/**
+ * @param {{
+ *     headers: {
+ *         authorization: string
+ *     },
+ *     queryStringObject: {
+ *        checkId: string
+ *     }
+ * }} data
+ * @param {(
+ *          statusCode: number,
+ *          messageObject: { message: string }
+ * )} callback
+ */
+_checks.get = (data, callback) => {
+    const checkId =
+        typeof data.queryStringObject.checkId === 'string' &&
+        data.queryStringObject.checkId.match(/^[a-zA-Z0-9]{20}$/)
+            ? data.queryStringObject.checkId.trim()
+            : '';
+
+    if (checkId) {
+        // Lookup the user
+        _dataLib.read(checkId, 'checks', (error, checkData) => {
+            if (!error) {
+                // Get the token from the headers
+                const token =
+                    typeof data.headers.authorization === 'string' &&
+                    data.headers.authorization.match(/^[a-zA-Z0-9]{20}$/)
+                        ? data.headers.authorization.trim()
+                        : '';
+
+                console.log(checkData.userPhoneNumber);
+
+                // Verify the token and the given phone number match, and belongs to the user who created the check
+                _tokens.verifyToken(token, checkData.userPhoneNumber, valid => {
+                    if (valid) {
+                        // Return the check data
+                        callback(null, {
+                            check: checkData
+                        });
+                    } else callback(401, { message: 'Invalid token' });
+                });
+            } else callback(404, { message: 'Check not found' });
+        });
+    } else callback(400, { message: 'Missing checkId' });
+};
 
 /**
  * @param {{
  *     headers: {
  *        authorization: string
- *     }
+ *     },
  *     payload: {
  *         method: string,
  *         protocol: string,
