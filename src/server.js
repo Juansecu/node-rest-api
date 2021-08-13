@@ -99,6 +99,8 @@ const httpsServer = https.createServer(httpsServerOptions, unifiedServer);
 // Define a request router
 const router = {};
 
+helpers.sendTwilioSms('Hellossxsgxssvsxgxssgsxgs', '4158375309', console.error);
+
 // Assign the handlers to the router
 for (const handlerName in handlers) {
     if (handlerName === 'notFound') continue;
