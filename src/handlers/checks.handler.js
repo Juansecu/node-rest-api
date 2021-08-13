@@ -18,7 +18,120 @@ const checksHandler = (data, callback) => {
     else callback(405, { message: 'Method not allowed' });
 };
 
-_checks.delete = (data, callback) => {};
+/**
+ * @param {{
+ *     headers: {
+ *         authorization: string
+ *     },
+ *     payload: {
+ *         checkId: string
+ *     }
+ * }} data
+ * @param {(
+ *          statusCode: number,
+ *          messageObject: { message: string }
+ * )} callback
+ */
+_checks.delete = (data, callback) => {
+    // Check that the checkId is valid
+    const checkId =
+        typeof data.payload.checkId === 'string' &&
+        data.payload.checkId.match(/^[a-zA-Z0-9]{20}$/)
+            ? data.payload.checkId.trim()
+            : '';
+
+    if (checkId) {
+        // Lookup the check
+        _dataLib.read(checkId, 'checks', (error, checkData) => {
+            if (!error) {
+                // Get the token from the headers
+                const token =
+                    typeof data.headers.authorization === 'string' &&
+                    data.headers.authorization.match(/^[a-zA-Z0-9]{20}$/)
+                        ? data.headers.authorization.trim()
+                        : '';
+
+                // Verify the token and the given phone number match and belongs to the user who created the check
+                _tokens.verifyToken(token, checkData.userPhoneNumber, valid => {
+                    if (valid) {
+                        // Delete the check
+                        _dataLib.delete(
+                            checkId,
+                            'checks',
+                            (error, response) => {
+                                if (!error) {
+                                    // Lookup the user
+                                    _dataLib.read(
+                                        checkData.userPhoneNumber.replace(
+                                            '+',
+                                            ''
+                                        ),
+                                        'users',
+                                        (error, userData) => {
+                                            if (!error) {
+                                                const userChecks =
+                                                    typeof userData.checks ===
+                                                        'object' &&
+                                                    userData.checks instanceof
+                                                        Array
+                                                        ? userData.checks
+                                                        : [];
+
+                                                // Get the check position from the user's checks
+                                                const checkPosition =
+                                                    userChecks.indexOf(checkId);
+
+                                                // Remove the check from the user's checks
+                                                if (checkPosition > -1) {
+                                                    userChecks.splice(
+                                                        checkPosition,
+                                                        1
+                                                    );
+
+                                                    // Update the user's checks
+                                                    _dataLib.update(
+                                                        userData,
+                                                        userData.phoneNumber.replace(
+                                                            '+',
+                                                            ''
+                                                        ),
+                                                        'users',
+                                                        error => {
+                                                            if (!error) {
+                                                                // Return the message of the delete
+                                                                callback(null, {
+                                                                    message:
+                                                                        'Check deleted'
+                                                                });
+                                                            } else
+                                                                callback(500, {
+                                                                    message:
+                                                                        'Error updating user'
+                                                                });
+                                                        }
+                                                    );
+                                                } else
+                                                    callback(404, {
+                                                        message: `Check not found as an assigned check to the user ${userData.firstName} ${userData.lastName}`
+                                                    });
+                                            } else
+                                                callback(404, {
+                                                    message: 'User not found'
+                                                });
+                                        }
+                                    );
+                                } else
+                                    callback(500, {
+                                        message: 'Error deleting check'
+                                    });
+                            }
+                        );
+                    } else callback(401, { message: 'Invalid token' });
+                });
+            } else callback(404, { message: 'Check not found' });
+        });
+    } else callback(400, { message: 'Missing checkId' });
+};
 
 /**
  * @param {{
@@ -42,7 +155,7 @@ _checks.get = (data, callback) => {
             : '';
 
     if (checkId) {
-        // Lookup the user
+        // Lookup the check
         _dataLib.read(checkId, 'checks', (error, checkData) => {
             if (!error) {
                 // Get the token from the headers
@@ -54,7 +167,7 @@ _checks.get = (data, callback) => {
 
                 console.log(checkData.userPhoneNumber);
 
-                // Verify the token and the given phone number match, and belongs to the user who created the check
+                // Verify the token and the given phone number match and belongs to the user who created the check
                 _tokens.verifyToken(token, checkData.userPhoneNumber, valid => {
                     if (valid) {
                         // Return the check data
