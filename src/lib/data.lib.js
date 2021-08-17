@@ -21,6 +21,17 @@ dataLib.delete = function (fileName, dir, callback) {
     });
 };
 
+// List all files in a directory
+dataLib.list = function (dir, callback) {
+    fs.readdir(`${dataLib.baseDir}/${dir}`, (error, files) => {
+        if (!error) {
+            const fileNames = [];
+            files.forEach(file => fileNames.push(file.replace('.json', '')));
+            callback(null, fileNames);
+        } else callback(error);
+    });
+};
+
 // Read data from a file
 dataLib.read = function (fileName, dir, callback) {
     fs.readFile(
