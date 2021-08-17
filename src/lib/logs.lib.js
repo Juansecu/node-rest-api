@@ -35,6 +35,44 @@ logsLib.append = (str, fileName, callback) => {
     );
 };
 
+// Compress the contents of one .log file into a .gz.b64 file with the same dierectory
+logsLib.compress = (fileName, newFileName, callback) => {
+    const sourceFile = `${logsLib.baseDir}/${fileName}.log`;
+    const destinationFile = `${newFileName}.gz.b64`;
+
+    // Read the file
+    fs.readFile(sourceFile, 'utf8', (error, data) => {
+        if (!error && data) {
+            // Compress the file
+            zlib.gzip(data, (error, compressedData) => {
+                if (!error && compressedData) {
+                    fs.open(destinationFile, 'wx', (error, fileDescriptor) => {
+                        if (!error) {
+                            // Write the compressed data to the file
+                            fs.writeFile(
+                                fileDescriptor,
+                                compressedData.toString('base64'),
+                                error => {
+                                    if (!error) {
+                                        // Close the file
+                                        fs.close(fileDescriptor, error => {
+                                            if (!error) callback(null);
+                                            else
+                                                callback(
+                                                    'Error closing the file'
+                                                );
+                                        });
+                                    } else callback('Error writing to file');
+                                }
+                            );
+                        } else callback('Error opening file');
+                    });
+                } else callback('Error compressing the file');
+            });
+        } else callback('Error reading the file');
+    });
+};
+
 // List all the files in the base directory
 logsLib.list = (includeCompressedLogs, callback) => {
     // Get the list of files
