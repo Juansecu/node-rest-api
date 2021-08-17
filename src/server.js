@@ -1,6 +1,7 @@
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const path = require('path');
 const url = require('url');
 const StringDecoder = require('string_decoder').StringDecoder;
 
@@ -91,15 +92,13 @@ const httpServer = http.createServer(unifiedServer);
 
 // Instatiate the HTTPS server
 const httpsServerOptions = {
-    cert: fs.readFileSync('./certificates/cert.pem'),
-    key: fs.readFileSync('./certificates/key.pem')
+    cert: fs.readFileSync(path.resolve('certificates/cert.pem')),
+    key: fs.readFileSync(path.resolve('certificates/key.pem'))
 };
 const httpsServer = https.createServer(httpsServerOptions, unifiedServer);
 
 // Define a request router
 const router = {};
-
-helpers.sendTwilioSms('Hellossxsgxssvsxgxssgsxgs', '4158375309', console.error);
 
 // Assign the handlers to the router
 for (const handlerName in handlers) {
@@ -107,14 +106,16 @@ for (const handlerName in handlers) {
     router[handlerName] = handlers[handlerName];
 }
 
-httpServer.listen(config.httpPort, () =>
-    console.log(
-        `HTTP server is listening on port ${config.httpPort} in ${config.environment} mod!`
-    )
-);
+module.exports.initServer = () => {
+    httpServer.listen(config.httpPort, () =>
+        console.log(
+            `HTTP server is listening on port ${config.httpPort} in ${config.environment} mod!`
+        )
+    );
 
-httpsServer.listen(config.httpsPort, () =>
-    console.log(
-        `HTTPS server is listening on port ${config.httpsPort} in ${config.environment} mod!`
-    )
-);
+    httpsServer.listen(config.httpsPort, () =>
+        console.log(
+            `HTTPS server is listening on port ${config.httpsPort} in ${config.environment} mod!`
+        )
+    );
+};
