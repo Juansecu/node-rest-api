@@ -35,4 +35,26 @@ logsLib.append = (str, fileName, callback) => {
     );
 };
 
+// List all the files in the base directory
+logsLib.list = (includeCompressedLogs, callback) => {
+    // Get the list of files
+    fs.readdir(logsLib.baseDir, (error, logFiles) => {
+        if (!error && logFiles.length) {
+            const trimmedFileNames = [];
+
+            logFiles.forEach(fileName => {
+                // Get the file name without the extension
+                if (fileName.indexOf('.log') > -1)
+                    trimmedFileNames.push(fileName.replace('.log', ''));
+
+                // Add on the .gz files
+                if (includeCompressedLogs && fileName.indexOf('.gz.b64') > -1)
+                    trimmedFileNames.push(fileName.replace('.gz.b64', ''));
+            });
+
+            callback(null, trimmedFileNames);
+        } else callback('Could not get the list of files');
+    });
+};
+
 module.exports = logsLib;
