@@ -73,6 +73,28 @@ logsLib.compress = (fileName, newFileName, callback) => {
     });
 };
 
+// Decompress the contents of a .gz.b64 file into a string
+logsLib.decompress = (fileName, callback) => {
+    fs.readFile(
+        `${logsLib.baseDir}/${fileName}.gz.b64`,
+        'utf8',
+        (error, data) => {
+            if (!error && data) {
+                const inputBuffer = Buffer.from(data, 'base64');
+
+                // Decompress the data
+                zlib.gunzip(inputBuffer, (error, outputBuffer) => {
+                    if (!error && outputBuffer) {
+                        callback(null, outputBuffer.toString());
+                    } else callback('Error decompressing the file');
+                });
+
+                callback(null, decompressedData);
+            } else callback('Error reading the file');
+        }
+    );
+};
+
 // List all the files in the base directory
 logsLib.list = (includeCompressedLogs, callback) => {
     // Get the list of files
