@@ -117,4 +117,12 @@ logsLib.list = (includeCompressedLogs, callback) => {
     });
 };
 
+// Truncate a log file
+logsLib.truncate = (fileName, callback) => {
+    fs.truncate(`${logsLib.baseDir}/${fileName}.log`, 0, error => {
+        if (!error) callback(null);
+        else callback('Error truncating the file');
+    });
+};
+
 module.exports = logsLib;
