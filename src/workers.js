@@ -3,6 +3,7 @@ const https = require('https');
 const url = require('url');
 
 const _dataLib = require('./lib/data.lib');
+const _logsLib = require('./lib/logs.lib');
 
 const helpers = require('./helpers');
 
@@ -190,10 +191,14 @@ workers.processCheckOutcome = (checkData, checkOutcome) => {
         checkData.state !== 'processing'
             ? true
             : false;
+    const timeOfCheck = Date.now();
+
+    // Log the outcome
+    workers.log(checkData, checkOutcome, state, timeOfCheck);
 
     // Update the check data
     checkData.state = state;
-    checkData.lastCheck = Date.now();
+    checkData.lastCheck = timeOfCheck;
 
     // Save the updated check data
     _dataLib.update(checkData, checkData.checkId, 'checks', error => {
@@ -220,10 +225,61 @@ workers.triggerAlert = checkData => {
     );
 };
 
+workers.log = (checkData, checkOutcome, state, alertWarranted, timeOfCheck) => {
+    // Form the log data
+    const logData = {
+        check: checkData,
+        outcome: checkOutcome,
+        state,
+        alert: alertWarranted,
+        time: timeOfCheck
+    };
+    // Convert data to a string
+    const logString = JSON.stringify(logData);
+    //Determine the log file name
+    const logFileName = checkData.checkId;
+
+    // Append the log data to the log file
+    _logsLib.append(logString, logFileName, error => {
+        if (!error) console.log(`Logged ${logString}`);
+        else console.error('Error to log:', error);
+    });
+};
+
 // Timer to execute the worker-process once per minute
 workers.loop = () => {
     // Call the loop function, so the checks will execute later on
     setInterval(() => workers.gatherAllChecks(), 1000 * 60);
+};
+
+// Timer to execute the log-rotation function once per day
+workers.logRotationLoop = () => {
+    // Call the loop function, so the checks will execute later on
+    setInterval(() => workers.rotateLogs(), 1000 * 60 * 60 * 24);
+};
+
+// Rotate (compress) the log files
+workers.rotateLogs = () => {
+    // List all the (non-compressed) log files
+    _logsLib.list(false, (error, logFiles) => {
+        if (!error && logFiles.length) {
+            logFiles.forEach(logFile => {
+                // Compress the data to a different file
+                const logName = logFile.replace('.log', '');
+                const newLogName = `${Date.now()}-${logName}`;
+
+                _logsLib.compress(logName, newLogName, error => {
+                    if (!error) {
+                        // Truncate the old log file
+                        _logsLib.truncate(logName, error => {
+                            if (!error) console.log(`Truncated ${logName}`);
+                            else console.error('Error truncating:', error);
+                        });
+                    } else console.error('Error to compress:', error);
+                });
+            });
+        } else console.error('Error to list:', error);
+    });
 };
 
 module.exports.initWorkers = () => {
@@ -232,4 +288,10 @@ module.exports.initWorkers = () => {
 
     // Call the loop function, so the checks will execute later on
     workers.loop();
+
+    // Compress all the logs immediately
+    workers.rotateLogs();
+
+    // Call the loop function, so the logs will compress later on
+    workers.logRotationLoop();
 };
