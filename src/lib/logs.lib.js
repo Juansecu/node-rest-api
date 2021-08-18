@@ -38,7 +38,7 @@ logsLib.append = (str, fileName, callback) => {
 // Compress the contents of one .log file into a .gz.b64 file with the same dierectory
 logsLib.compress = (fileName, newFileName, callback) => {
     const sourceFile = `${logsLib.baseDir}/${fileName}.log`;
-    const destinationFile = `${newFileName}.gz.b64`;
+    const destinationFile = `${logsLib.baseDir}/${newFileName}.gz.b64`;
 
     // Read the file
     fs.readFile(sourceFile, 'utf8', (error, data) => {
